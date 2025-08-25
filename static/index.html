@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CISD Training Assistant</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .chat-container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-radius: 24px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+      width: 100%;
+      max-width: 480px;
+      height: 700px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .chat-header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      padding: 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chat-header::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { transform: translateX(-100%) translateY(-100%) rotate(0deg); }
+      50% { transform: translateX(0%) translateY(0%) rotate(180deg); }
+    }
+
+    .chat-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .chat-subtitle {
+      font-size: 14px;
+      opacity: 0.9;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      margin-right: 8px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    .chatbox {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      background: linear-gradient(to bottom, rgba(248, 250, 252, 0.5), rgba(241, 245, 249, 0.3));
+    }
+
+    .chatbox::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .chatbox::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+    }
+
+    .chatbox::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 10px;
+      transition: background 0.3s ease;
+    }
+
+    .chatbox::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    .message {
+      margin-bottom: 16px;
+      animation: messageSlideIn 0.2s ease-out;
+      opacity: 0;
+      animation-fill-mode: forwards;
+    }
+
+    @keyframes messageSlideIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .user-message {
+      display: flex;
+      justify-content: flex-end;
+      align-items: flex-end;
+    }
+
+    .bot-message {
+      display: flex;
+      justify-content: flex-start;
+      align-items: flex-start;
+    }
+
+    .message-content {
+      max-width: 80%;
+      padding: 16px 20px;
+      border-radius: 20px;
+      font-size: 15px;
+      line-height: 1.4;
+      word-wrap: break-word;
+      position: relative;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .user-message .message-content {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: white;
+      border-bottom-right-radius: 4px;
+      margin-left: 12px;
+    }
+
+    .bot-message .message-content {
+      background: white;
+      color: #374151;
+      border-bottom-left-radius: 4px;
+      margin-right: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .bot-message .message-content a {
+      color: #4f46e5 !important;
+      text-decoration: underline;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .bot-message .message-content a:hover {
+      color: #7c3aed !important;
+      text-decoration: underline;
+      background-color: rgba(79, 70, 229, 0.1);
+      padding: 2px 4px;
+      border-radius: 4px;
+    }
+
+    .bot-message .message-content strong {
+      font-weight: 600;
+      color: #1f2937;
+    }
+
+    .bot-message .message-content ol {
+      margin: 8px 0;
+      padding-left: 20px;
+    }
+
+    .bot-message .message-content li {
+      margin: 4px 0;
+      line-height: 1.5;
+    }
+
+    .bot-message .message-content p {
+      margin: 8px 0;
+      line-height: 1.5;
+    }
+
+    .bot-message .message-content p:first-child {
+      margin-top: 0;
+    }
+
+    .bot-message .message-content p:last-child {
+      margin-bottom: 0;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .user-avatar {
+      background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%);
+      color: white;
+    }
+
+    .bot-avatar {
+      background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+      color: white;
+    }
+
+    .input-area {
+      padding: 24px;
+      background: rgba(255, 255, 255, 0.8);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .input-container {
+      display: flex;
+      align-items: center;
+      background: white;
+      border-radius: 25px;
+      padding: 4px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+
+    .input-container:focus-within {
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    }
+
+    .message-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 16px 20px;
+      font-size: 16px;
+      background: transparent;
+      color: #374151;
+    }
+
+    .message-input::placeholder {
+      color: #9ca3af;
+    }
+
+    .send-button {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      border: none;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-left: 8px;
+    }
+
+    .send-button:hover {
+      transform: scale(1.05);
+      box-shadow: 0 8px 25px rgba(79, 70, 229, 0.3);
+    }
+
+    .send-button:active {
+      transform: scale(0.95);
+    }
+
+    .send-button svg {
+      width: 20px;
+      height: 20px;
+      color: white;
+      transition: transform 0.3s ease;
+    }
+
+    .send-button:hover svg {
+      transform: translateX(2px);
+    }
+
+    .typing-indicator {
+      display: none;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .typing-dots {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px;
+      background: white;
+      border-radius: 20px;
+      border-bottom-left-radius: 4px;
+      margin-left: 48px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .typing-dot {
+      width: 8px;
+      height: 8px;
+      background: #9ca3af;
+      border-radius: 50%;
+      margin: 0 2px;
+      animation: typing 1.4s ease-in-out infinite;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 60%, 100% { transform: scale(1); opacity: 0.7; }
+      30% { transform: scale(1.2); opacity: 1; }
+    }
+
+    .welcome-message {
+      text-align: center;
+      padding: 40px 20px;
+      color: #6b7280;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+
+    .welcome-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 12px;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 10px;
+      }
+      
+      .chat-container {
+        height: 100vh;
+        border-radius: 0;
+        max-width: none;
+      }
+      
+      .chat-header {
+        padding: 20px;
+      }
+      
+      .chat-title {
+        font-size: 20px;
+      }
+      
+      .chatbox {
+        padding: 16px;
+      }
+      
+      .input-area {
+        padding: 16px;
+      }
+      
+      .message-content {
+        max-width: 85%;
+        padding: 14px 18px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .message-content {
+        max-width: 90%;
+        font-size: 14px;
+      }
+      
+      .avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">
+      <div class="chat-title">CISD Training Assistant</div>
+      <div class="chat-subtitle">Free Government Training for Domestic Workers & Nannies</div>
+      <div class="status-indicator">
+        <div class="status-dot"></div>
+        <span style="font-size: 12px;">Online</span>
+      </div>
+    </div>
+    
+    <div class="chatbox" id="chatbox">
+      <div class="welcome-message">
+        <div class="welcome-title">🌟 Welcome to CISD!</div>
+        <div>I'm here to help you with information about CISD's free government training program for domestic workers and nannies seeking employment in Saudi Arabia & GCC countries. Ask me about training, eligibility, salaries, and more!</div>
+      </div>
+    </div>
+    
+    <div class="typing-indicator" id="typingIndicator">
+      <div class="avatar bot-avatar">🤖</div>
+      <div class="typing-dots">
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+        <div class="typing-dot"></div>
+      </div>
+    </div>
+    
+    <div class="input-area">
+      <div class="input-container">
+        <input 
+          type="text" 
+          id="userInput" 
+          class="message-input"
+          placeholder="Ask about training, eligibility, jobs abroad..."
+          autocomplete="off"
+        >
+        <button class="send-button" onclick="sendMessage()" id="sendButton">
+          <svg viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById('chatbox');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const userInput = document.getElementById('userInput');
+    const sendButton = document.getElementById('sendButton');
+    let chatHistory = [];
+    let messageCount = 0;
+
+    function formatBotMessage(text) {
+      // Convert URLs to clickable links first
+      text = makeLinksClickable(text);
+      
+      // Convert **bold** text to HTML bold
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Convert numbered lists (1. 2. 3. etc.) to proper HTML lists
+      const lines = text.split('\n');
+      let formattedLines = [];
+      let inList = false;
+      
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        
+        // Check if line starts with a number followed by a period
+        const listMatch = line.match(/^(\d+)\.\s*(.*)$/);
+        
+        if (listMatch) {
+          if (!inList) {
+            formattedLines.push('<ol style="margin: 8px 0; padding-left: 20px;">');
+            inList = true;
+          }
+          formattedLines.push(`<li style="margin: 4px 0; line-height: 1.5;">${listMatch[2]}</li>`);
+        } else {
+          if (inList) {
+            formattedLines.push('</ol>');
+            inList = false;
+          }
+          
+          if (line) {
+            formattedLines.push(`<p style="margin: 8px 0;">${line}</p>`);
+          }
+        }
+      }
+      
+      // Close any open list
+      if (inList) {
+        formattedLines.push('</ol>');
+      }
+      
+      return formattedLines.join('');
+    }
+
+    function makeLinksClickable(text) {
+      // Regular expression to detect URLs (including www. and naked domains)
+      const urlRegex = /(https?:\/\/[^\s\]]+|www\.[^\s\]]+|[a-zA-Z0-9][a-zA-Z0-9-]{1,61}[a-zA-Z0-9]\.[a-zA-Z]{2,}(?:\/[^\s\]]*)?)/g;
+      
+      return text.replace(urlRegex, function(url) {
+        let href = url;
+        
+        // Add https:// if the URL doesn't have a protocol
+        if (!url.match(/^https?:\/\//)) {
+          href = 'https://' + url;
+        }
+        
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" style="color: #4f46e5; text-decoration: underline; font-weight: 500;">${url}</a>`;
+      });
+    }
+
+    function appendMessage(sender, text, animate = true) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${sender}-message`;
+      
+      if (animate) {
+        messageDiv.style.animationDelay = '0.1s';
+      }
+
+      const avatar = document.createElement('div');
+      avatar.className = `avatar ${sender}-avatar`;
+      avatar.textContent = sender === 'user' ? '👤' : '🤖';
+
+      const content = document.createElement('div');
+      content.className = 'message-content';
+      
+      // For bot messages, format text with proper styling
+      if (sender === 'bot') {
+        content.innerHTML = formatBotMessage(text);
+      } else {
+        content.textContent = text;
+      }
+
+      if (sender === 'user') {
+        messageDiv.appendChild(content);
+        messageDiv.appendChild(avatar);
+      } else {
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(content);
+      }
+
+      // Remove welcome message if it exists
+      const welcomeMessage = chatbox.querySelector('.welcome-message');
+      if (welcomeMessage && messageCount === 0) {
+        welcomeMessage.remove();
+      }
+
+      chatbox.appendChild(messageDiv);
+      chatbox.scrollTop = chatbox.scrollHeight;
+      messageCount++;
+    }
+
+    function showTypingIndicator() {
+      typingIndicator.style.display = 'flex';
+      chatbox.parentNode.insertBefore(typingIndicator, chatbox.nextSibling);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function hideTypingIndicator() {
+      typingIndicator.style.display = 'none';
+    }
+
+    function setLoadingState(loading) {
+      sendButton.disabled = loading;
+      userInput.disabled = loading;
+      
+      if (loading) {
+        sendButton.style.opacity = '0.6';
+        sendButton.style.cursor = 'not-allowed';
+        showTypingIndicator();
+      } else {
+        sendButton.style.opacity = '1';
+        sendButton.style.cursor = 'pointer';
+        hideTypingIndicator();
+      }
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text || sendButton.disabled) return;
+
+      appendMessage('user', text);
+      chatHistory.push({ sender: 'user', text });
+
+      userInput.value = '';
+      setLoadingState(true);
+
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: chatHistory })
+        });
+        
+        const data = await res.json();
+
+        if (data.response) {
+          appendMessage('bot', data.response);
+          chatHistory.push({ sender: 'bot', text: data.response });
+        } else {
+          appendMessage('bot', '⚠️ Sorry, I encountered an issue. Please try again.');
+        }
+      } catch (err) {
+        // Demo response when API is not available
+        const responses = [
+          "CISD offers free government training for domestic workers and nannies! Training includes household skills, English/Arabic language, and job placement in Saudi Arabia & GCC countries.",
+          "Our training program is 6-8 weeks long and completely free. You'll earn around SAR 1500 (PKR 125,000) monthly with free accommodation abroad!",
+          "Eligibility requirements: Minimum Matric qualification and age 25+. Contact us at 0309-8888421 for more details.",
+          "We provide safe, legal employment abroad with proper protection. Training covers cooking, childcare, house management, and more.",
+          "Visit our office at 9A-Shershah Block, Garden Town, Lahore or call 0304-0556243 for enrollment information."
+        ];
+        
+        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+        appendMessage('bot', randomResponse);
+        chatHistory.push({ sender: 'bot', text: randomResponse });
+      }
+
+      setLoadingState(false);
+    }
+
+    // Enhanced keyboard event handling
+    userInput.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter' && !e.shiftKey && !sendButton.disabled) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Auto-resize input on focus for mobile
+    userInput.addEventListener('focus', function() {
+      setTimeout(() => {
+        this.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 300);
+    });
+
+    // Initialize with a small delay for smooth loading
+    setTimeout(() => {
+      userInput.focus();
+    }, 500);
+  </script>
+</body>
+</html>
